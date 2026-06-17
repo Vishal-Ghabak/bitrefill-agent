@@ -19,12 +19,12 @@ const MOCK_PRODUCTS: Record<string, object[]> = {
   ],
 }
 
-const MOCK_ORDER = {
+const mockOrder = () => ({
   order_id: `ORDER-${Date.now()}`,
   status: 'pending',
   payment_method: 'lightning',
   expires_at: new Date(Date.now() + 15 * 60 * 1000).toISOString(),
-}
+})
 
 const MOCK_CONFIRMATION = {
   status: 'completed',
@@ -62,7 +62,7 @@ export async function searchProducts(params: {
       const matchesQuery = product.name.toLowerCase().includes(params.query.toLowerCase().split(' ')[0])
       const matchesCountry = !params.country || product.country === params.country
       const matchesCategory = !params.category || product.category === params.category
-      return matchesQuery || matchesCountry || matchesCategory
+      return matchesQuery && matchesCountry && matchesCategory
     })
     return { products: results.length > 0 ? results : MOCK_PRODUCTS.default.slice(0, 3), mock: true }
   }
@@ -90,7 +90,7 @@ export async function createOrder(params: {
 }) {
   if (MOCK_MODE) {
     await new Promise(r => setTimeout(r, 700))
-    return { ...MOCK_ORDER, product_id: params.product_id, denomination: params.denomination, currency: params.currency, mock: true }
+    return { ...mockOrder(), product_id: params.product_id, denomination: params.denomination, currency: params.currency, mock: true }
   }
   return bitrefillFetch('/orders', {
     method: 'POST',

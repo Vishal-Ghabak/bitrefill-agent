@@ -1,12 +1,7 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
-
-type AgentEvent =
-  | { type: 'thinking'; text: string }
-  | { type: 'tool_call'; tool: string; input: Record<string, unknown> }
-  | { type: 'done'; summary: string }
-  | { type: 'error'; message: string }
+import type { AgentEvent } from '@/lib/types'
 
 // MCP tool names are prefixed with the server name: bitrefill__<tool-name>
 function toolLabel(name: string): string {
@@ -60,7 +55,8 @@ export default function Home() {
         signal: controller.signal,
       })
 
-      const reader = res.body!.getReader()
+      if (!res.body) throw new Error('No response body')
+      const reader = res.body.getReader()
       const decoder = new TextDecoder()
       let buffer = ''
 

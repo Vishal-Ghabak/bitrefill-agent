@@ -39,7 +39,7 @@ const sessions = new Map<number, ConvState>()
 
 async function getSearchTerms(interest: string): Promise<string[]> {
   const res = await anthropic.messages.create({
-    model: 'claude-haiku-4-5-20251001',
+    model: 'claude-haiku-4-5',
     max_tokens: 80,
     messages: [{
       role: 'user',
@@ -74,15 +74,19 @@ async function searchWithMCP(interest: string, budgetEUR?: number, countryCode =
 
   // Two passes: first collect country-matched results, then anything as fallback
   const collect = async (filterCountry: boolean): Promise<ProductOption[]> => {
+    const responses = await Promise.all(
+      terms.map(term => {
+        const url = `https://api.bitrefill.com/v2/products/search?q=${encodeURIComponent(term)}&limit=10`
+        return fetch(url, { headers: { Authorization: `Bearer ${process.env.BITREFILL_API_KEY}` } })
+          .then(r => r.json())
+      })
+    )
+
     const results: ProductOption[] = []
     const seen = new Set<string>()
 
-    for (const term of terms) {
+    for (const data of responses) {
       if (results.length >= 3) break
-      const url = `https://api.bitrefill.com/v2/products/search?q=${encodeURIComponent(term)}&limit=10`
-      const res = await fetch(url, { headers: { Authorization: `Bearer ${process.env.BITREFILL_API_KEY}` } })
-      const data = await res.json()
-
       for (const p of (data.data ?? [])) {
         if (results.length >= 3) break
         if (!p.id || seen.has(p.id)) continue
@@ -111,14 +115,56 @@ async function searchWithMCP(interest: string, budgetEUR?: number, countryCode =
   }
 
   const countryResults = await collect(true)
-  return countryResults.length > 0 ? countryResults : collect(false)
+  if (countryResults.length > 0) return countryResults
+  return collect(false)
+}
+
+async function discoverWithAgent(interest: string, countryCode: string, budgetEUR?: number): Promise<ProductOption[]> {
+  const apiKey = process.env.BITREFILL_API_KEY
+  if (!apiKey) return []
+
+  const budgetClause = budgetEUR ? ` within a budget of €${budgetEUR}` : ''
+
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const stream = await (anthropic.beta.messages as any).create({
+      model: 'claude-haiku-4-5',
+      max_tokens: 1024,
+      system:
+        'You are a gift card finder. Search Bitrefill for products relevant to the user\'s interest. ' +
+        'After searching, return ONLY a valid JSON array (no markdown, no explanation) of up to 3 results:\n' +
+        '[{"productId":"<id>","packageId":"<package_id>","name":"<name>","label":"<name> · <value>"}]\n' +
+        'Use the cheapest available package for each product. ' +
+        'packageId comes directly from the search or product-details response.',
+      mcp_servers: [{ type: 'url', url: `https://api.bitrefill.com/mcp/${apiKey}`, name: 'bitrefill' }],
+      messages: [{
+        role: 'user',
+        content: `Find gift cards for someone interested in "${interest}", available in country ${countryCode}${budgetClause}.`,
+      }],
+      stream: true,
+      betas: ['mcp-client-2025-04-04'],
+    })
+
+    let text = ''
+    for await (const event of stream) {
+      if (event.type === 'content_block_delta' && event.delta?.type === 'text_delta') {
+        text += event.delta.text
+      }
+    }
+
+    const match = text.match(/\[[\s\S]*?\]/)
+    if (!match) return []
+    return JSON.parse(match[0]) as ProductOption[]
+  } catch {
+    return []
+  }
 }
 
 // ── Intent extraction (fast Haiku call) ───────────────────────────────────
 
 async function parseIntent(text: string): Promise<GiftIntent | null> {
   const res = await anthropic.messages.create({
-    model: 'claude-haiku-4-5-20251001',
+    model: 'claude-haiku-4-5',
     max_tokens: 200,
     messages: [{
       role: 'user',
@@ -180,7 +226,12 @@ bot.on('message:text', async ctx => {
     await ctx.reply('🔍 Searching Bitrefill for the best options...')
 
     try {
-      const options = await searchWithMCP(interest, session.intent.budgetEUR, session.intent.countryCode)
+      let options = await searchWithMCP(interest, session.intent.budgetEUR, session.intent.countryCode)
+
+      if (!options.length) {
+        await ctx.reply('🤔 Nothing via quick search — trying a smarter lookup...')
+        options = await discoverWithAgent(interest, session.intent.countryCode, session.intent.budgetEUR)
+      }
 
       if (!options.length) {
         await ctx.reply('Hmm, nothing found for that. Try: gaming, music, food, coffee, sports')
@@ -199,6 +250,40 @@ bot.on('message:text', async ctx => {
     } catch (err) {
       await ctx.reply(`❌ Search failed: ${String(err)}`)
       sessions.set(chatId, { step: 'idle' })
+    }
+    return
+  }
+
+  // ── awaiting_selection: user typed instead of tapping a button ──
+  if (session.step === 'awaiting_selection') {
+    // Treat their message as a refined interest — re-search and show new options
+    const interest = text
+    await ctx.reply('🔍 Searching for different options...')
+
+    try {
+      let options = await searchWithMCP(interest, session.intent.budgetEUR, session.intent.countryCode)
+
+      if (!options.length) {
+        await ctx.reply('🤔 Nothing via quick search — trying a smarter lookup...')
+        options = await discoverWithAgent(interest, session.intent.countryCode, session.intent.budgetEUR)
+      }
+
+      if (!options.length) {
+        await ctx.reply('Nothing found for that. Try: gaming, music, food, coffee, sports — or tap one of the buttons above.')
+        return
+      }
+
+      const keyboard = new InlineKeyboard()
+      options.forEach((opt, i) => keyboard.text(opt.label, `pick:${i}`).row())
+
+      sessions.set(chatId, { step: 'awaiting_selection', intent: session.intent, options })
+
+      await ctx.reply(
+        `Here are some other options for ${session.intent.recipientName} 👇`,
+        { reply_markup: keyboard }
+      )
+    } catch (err) {
+      await ctx.reply(`❌ Search failed: ${String(err)}`)
     }
     return
   }
@@ -240,7 +325,7 @@ bot.on('callback_query:data', async ctx => {
     return
   }
 
-  const idx = parseInt(data.split(':')[1])
+  const idx = parseInt(data.split(':')[1], 10)
   const option = session.options[idx]
   const { intent } = session
 
@@ -258,7 +343,7 @@ bot.on('callback_query:data', async ctx => {
     `Send it as a gift:\n` +
     `- recipient_name: "${intent.recipientName}"\n` +
     `- recipient_email: "${intent.recipientEmail}"\n` +
-    `- sender_name: "Vishal"\n` +
+    `- sender_name: "${process.env.SENDER_NAME ?? 'Relay'}"\n` +
     `- message: "Congratulations on ${intent.occasion}! 🎉"\n` +
     `- theme: "red"\n` +
     `Use payment_method: "balance", balance_currency: "EUR". ` +

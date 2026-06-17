@@ -1,14 +1,11 @@
 import Anthropic from '@anthropic-ai/sdk'
 import { SYSTEM_PROMPT } from './system-prompt'
+export type { AgentEvent } from './types'
 
-export type AgentEvent =
-  | { type: 'thinking'; text: string }
-  | { type: 'tool_call'; tool: string; input: Record<string, unknown> }
-  | { type: 'done'; summary: string }
-  | { type: 'error'; message: string }
+let client: Anthropic | null = null
+const getClient = () => { client ??= new Anthropic(); return client }
 
-export async function* runAgent(goal: string): AsyncGenerator<AgentEvent> {
-  const client = new Anthropic()
+export async function* runAgent(goal: string): AsyncGenerator<import('./types').AgentEvent> {
   const apiKey = process.env.BITREFILL_API_KEY
   if (!apiKey) {
     yield {
@@ -20,7 +17,7 @@ export async function* runAgent(goal: string): AsyncGenerator<AgentEvent> {
 
   try {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const stream = await (client.beta.messages as any).create({
+    const stream = await (getClient().beta.messages as any).create({
       model: 'claude-sonnet-4-6',
       max_tokens: 8096,
       system: SYSTEM_PROMPT,

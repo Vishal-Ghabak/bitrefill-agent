@@ -7,6 +7,9 @@ export async function POST(req: NextRequest) {
   if (!goal?.trim()) {
     return new Response('Goal is required', { status: 400 })
   }
+  if (goal.length > 2000) {
+    return new Response('Goal too long (max 2000 characters)', { status: 400 })
+  }
 
   const encoder = new TextEncoder()
 
@@ -18,7 +21,7 @@ export async function POST(req: NextRequest) {
           controller.enqueue(encoder.encode(line))
         }
       } catch (err) {
-        const error = JSON.stringify({ type: 'error', message: String(err) }) + '\n'
+        const error = JSON.stringify({ type: 'error', message: err instanceof Error ? err.message : String(err) }) + '\n'
         controller.enqueue(encoder.encode(error))
       } finally {
         controller.close()
