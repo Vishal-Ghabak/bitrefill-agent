@@ -1,0 +1,16 @@
+# env files — never commit API keys
+.env
+.env.local
+.env*.local
+
+# dependencies
+node_modules/
+
+# Next.js build output
+.next/
+out/
+
+# misc
+.DS_Store
+*.pem
+tsconfig.tsbuildinfo

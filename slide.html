@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>My Bitrefill Buddy</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      background: #0f0f0f;
+      color: #ffffff;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .slide {
+      text-align: center;
+      max-width: 860px;
+      padding: 0 40px;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: #1a1a1a;
+      border: 1px solid #2a2a2a;
+      border-radius: 999px;
+      padding: 6px 16px;
+      font-size: 13px;
+      color: #888;
+      margin-bottom: 32px;
+      letter-spacing: 0.04em;
+    }
+
+    .badge span { color: #f97316; }
+
+    h1 {
+      font-size: 76px;
+      font-weight: 700;
+      letter-spacing: -2px;
+      line-height: 1.05;
+      margin-bottom: 20px;
+    }
+
+    h1 em {
+      font-style: normal;
+      background: linear-gradient(90deg, #f97316, #fb923c);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .tagline {
+      font-size: 26px;
+      color: #aaa;
+      margin-bottom: 56px;
+      font-weight: 400;
+    }
+
+    .steps {
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      gap: 0;
+      margin-bottom: 56px;
+    }
+
+    .step {
+      flex: 1;
+      max-width: 200px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .step-icon {
+      font-size: 28px;
+      height: 56px;
+      width: 56px;
+      background: #1a1a1a;
+      border: 1px solid #2a2a2a;
+      border-radius: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .step-label {
+      font-size: 15px;
+      color: #666;
+      line-height: 1.5;
+      text-align: center;
+    }
+
+    .step-label strong {
+      display: block;
+      color: #ccc;
+      font-size: 16px;
+      margin-bottom: 4px;
+    }
+
+    .arrow {
+      color: #333;
+      font-size: 20px;
+      margin-top: 16px;
+      padding: 0 8px;
+    }
+
+    .powered {
+      font-size: 13px;
+      color: #444;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+    }
+
+    .powered span {
+      color: #666;
+    }
+
+    .dot {
+      width: 3px;
+      height: 3px;
+      background: #333;
+      border-radius: 50%;
+    }
+  </style>
+</head>
+<body>
+  <div class="slide">
+
+    <div class="badge">
+      <span>✦</span> PROMPT × PURCHASE HACKATHON
+    </div>
+
+    <h1>Gift anyone.<br /><em>One message.</em></h1>
+
+    <p class="tagline">
+      An AI agent that finds, buys, and delivers a gift card — autonomously.
+    </p>
+
+    <div class="steps">
+      <div class="step">
+        <div class="step-icon">💬</div>
+        <div class="step-label">
+          <strong>Describe</strong>
+          "Gift Alex for shipping the feature"
+        </div>
+      </div>
+
+      <div class="arrow">→</div>
+
+      <div class="step">
+        <div class="step-icon">🤖</div>
+        <div class="step-label">
+          <strong>Agent picks</strong>
+          Searches Bitrefill, shows top 3 options
+        </div>
+      </div>
+
+      <div class="arrow">→</div>
+
+      <div class="step">
+        <div class="step-icon">🎁</div>
+        <div class="step-label">
+          <strong>Done</strong>
+          Gift emailed to recipient
+        </div>
+      </div>
+    </div>
+
+    <div class="powered">
+      <span>Claude AI</span>
+      <div class="dot"></div>
+      <span>Bitrefill MCP</span>
+      <div class="dot"></div>
+      <span>Telegram</span>
+    </div>
+
+  </div>
+</body>
+</html>
