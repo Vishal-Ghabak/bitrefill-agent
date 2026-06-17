@@ -4,7 +4,7 @@ Send a gift card to anyone in one Telegram message. An AI agent searches Bitrefi
 
 ## Demo
 
-[▶ Watch the demo video](#) <!-- replace with your video link -->
+[▶ Watch the demo video](https://youtu.be/kI1dIYYfzxA)
 
 **Live bot:** [@mybitrefillbuddy_bot](https://t.me/mybitrefillbuddy_bot)
 
